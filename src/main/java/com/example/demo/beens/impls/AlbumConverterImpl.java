@@ -41,6 +41,8 @@ public class AlbumConverterImpl implements AlbumConverter {
                 appendAlbumXml(baseRoot,document,album);
             }
 
+            Element similar = document.createElement("total albums");
+            similar.appendChild(document.createTextNode(albums.get(0).getSimilarResults()+""));
 
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
@@ -101,6 +103,7 @@ public class AlbumConverterImpl implements AlbumConverter {
                 albumsJson.put(albumToJson(album));
             }
             jsonObject.put("albums", albumsJson);
+            jsonObject.put("total albums",albums.get(0).getSimilarResults());
         } catch (JSONException e) {
             e.printStackTrace();
         }

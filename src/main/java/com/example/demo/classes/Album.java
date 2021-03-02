@@ -8,6 +8,7 @@ public class Album {
     private String genre;
     private String pictureURL;
     private Map<String,Integer> songs;
+    private int similarResults;
 
     public Album(String name, String author, String genre, String pictureURL, Map<String, Integer> songs) {
         this.name = name;
@@ -15,6 +16,7 @@ public class Album {
         this.genre = genre;
         this.pictureURL = pictureURL;
         this.songs = songs;
+        similarResults = 1;
     }
 
     public String getName() {
@@ -35,5 +37,13 @@ public class Album {
 
     public Map<String, Integer> getSongs() {
         return songs;
+    }
+
+    public int getSimilarResults() {
+        return similarResults;
+    }
+
+    public void setSimilarResults(int similarResults) {
+        this.similarResults = similarResults;
     }
 }
