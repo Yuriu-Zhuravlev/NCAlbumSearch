@@ -70,4 +70,9 @@ public class GetByAlbumAndArtistService implements GetByTwoParametersService {
         }
         return CompletableFuture.completedFuture(album);
     }
+
+    @Override
+    public String toString() {
+        return "GetByAlbumAndArtistService";
+    }
 }

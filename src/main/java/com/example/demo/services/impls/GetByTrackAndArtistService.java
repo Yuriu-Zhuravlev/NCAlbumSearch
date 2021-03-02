@@ -2,7 +2,6 @@ package com.example.demo.services.impls;
 
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,8 +11,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Service("byTrackAndArtist")
@@ -63,5 +60,10 @@ public class GetByTrackAndArtistService implements GetByTwoParametersService {
         }
         CompletableFuture<Album> album = getByAlbumAndArtist.getAlbum(albumName,artist);
         return album;
+    }
+
+    @Override
+    public String toString() {
+        return "GetByTrackAndArtistService";
     }
 }
