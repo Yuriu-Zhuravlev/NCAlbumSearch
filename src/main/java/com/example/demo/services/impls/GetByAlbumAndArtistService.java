@@ -2,35 +2,20 @@ package com.example.demo.services.impls;
 
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
-import netscape.javascript.JSObject;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Service("byAlbumAndArtist")
 public class GetByAlbumAndArtistService implements GetByTwoParametersService {
-
-
     @Value("${lastfm.url}")
     String urlString;
     @Value("${lastfm.param.method}")
@@ -49,17 +34,18 @@ public class GetByAlbumAndArtistService implements GetByTwoParametersService {
     String albumParam;
     @Value("${lastfm.param.artist}")
     String artistParam;
+
+    @Async("asyncExecutor")
     @Override
-    public Album getAlbum(String param1, String artist) {
-        StringBuilder builder = new StringBuilder(urlString);
-        builder.append('?');
-        builder.append(methodParam).append('=').append(methodValue);
-        builder.append('&').append(apiKeyParam).append('=').append(apiKeyValue);
-        builder.append('&').append(artistParam).append('=').append(artist);
-        builder.append('&').append(albumParam).append('=').append(param1);
-        builder.append('&').append(formatParam).append('=').append(formatValue);
+    public CompletableFuture<Album> getAlbum(String param1, String artist) {
         RestTemplate restTemplate = new RestTemplate();
-        String responseString = restTemplate.getForObject(builder.toString(), String.class);
+        String url = urlString + '?' +
+                methodParam + '=' + methodValue +
+                '&' + apiKeyParam + '=' + apiKeyValue +
+                '&' + artistParam + '=' + artist +
+                '&' + albumParam + '=' + param1 +
+                '&' + formatParam + '=' + formatValue;
+        String responseString = restTemplate.getForObject(url, String.class);
         Album album = null;
         try {
             JSONObject json = new JSONObject(responseString);
@@ -82,6 +68,6 @@ public class GetByAlbumAndArtistService implements GetByTwoParametersService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return album;
+        return CompletableFuture.completedFuture(album);
     }
 }

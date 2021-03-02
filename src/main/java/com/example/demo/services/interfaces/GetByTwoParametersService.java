@@ -2,6 +2,8 @@ package com.example.demo.services.interfaces;
 
 import com.example.demo.classes.Album;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface GetByTwoParametersService {
-    Album getAlbum(String param1, String artist);
+    CompletableFuture<Album> getAlbum(String param1, String artist);
 }
