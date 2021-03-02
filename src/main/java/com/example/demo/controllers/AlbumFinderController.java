@@ -32,6 +32,9 @@ public class AlbumFinderController {
     @Autowired
     @Qualifier("byArtist")
     GetByOneParameterService getByArtist;
+    @Autowired
+    @Qualifier("byTrack")
+    GetByOneParameterService getByTrack;
 
     @RequestMapping (path = "/byArtistAndTrack")
     public ResponseEntity<?> getByArtistAndTrack(
@@ -69,6 +72,31 @@ public class AlbumFinderController {
     )
     {
         CompletableFuture<List<Album>> albumCompletableFuture = getByArtist.getAlbums(artist);
+        albumCompletableFuture.join();
+        List<Album> albums = null;
+        try {
+            albums = albumCompletableFuture.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        String response;
+        if (format.equals("xml")) {
+            response = albumConverter.toXML(albums);
+        } else {
+            response = albumConverter.toJSON(albums);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @RequestMapping (path = "/byTrack")
+    public ResponseEntity<?> getByTrack(
+            @RequestParam(value = "track") String track,
+            @RequestParam(value = "format", defaultValue="json") String format
+    )
+    {
+        CompletableFuture<List<Album>> albumCompletableFuture = getByTrack.getAlbums(track);
         albumCompletableFuture.join();
         List<Album> albums = null;
         try {

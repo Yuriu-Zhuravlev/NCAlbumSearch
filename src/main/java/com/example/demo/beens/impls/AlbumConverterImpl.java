@@ -41,8 +41,9 @@ public class AlbumConverterImpl implements AlbumConverter {
                 appendAlbumXml(baseRoot,document,album);
             }
 
-            Element similar = document.createElement("total albums");
+            Element similar = document.createElement("totalAlbums");
             similar.appendChild(document.createTextNode(albums.get(0).getSimilarResults()+""));
+            baseRoot.appendChild(similar);
 
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();

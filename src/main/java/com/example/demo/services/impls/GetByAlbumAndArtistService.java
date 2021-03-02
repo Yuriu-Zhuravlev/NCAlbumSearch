@@ -1,10 +1,13 @@
 package com.example.demo.services.impls;
 
+import com.example.demo.beens.interfaces.URLReplacer;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,10 @@ import java.util.concurrent.CompletableFuture;
 
 @Service("byAlbumAndArtist")
 public class GetByAlbumAndArtistService implements GetByTwoParametersService {
+    @Autowired
+    @Qualifier("URLReplacer")
+    URLReplacer replacer;
+
     @Value("${lastfm.url}")
     String urlString;
     @Value("${lastfm.param.method}")
@@ -42,8 +49,8 @@ public class GetByAlbumAndArtistService implements GetByTwoParametersService {
         String url = urlString + '?' +
                 methodParam + '=' + methodValue +
                 '&' + apiKeyParam + '=' + apiKeyValue +
-                '&' + artistParam + '=' + artist +
-                '&' + albumParam + '=' + param1 +
+                '&' + artistParam + '=' + replacer.replaceSpec(artist) +
+                '&' + albumParam + '=' + replacer.replaceSpec(param1) +
                 '&' + formatParam + '=' + formatValue;
         String responseString = restTemplate.getForObject(url, String.class);
         Album album = null;
@@ -65,10 +72,11 @@ public class GetByAlbumAndArtistService implements GetByTwoParametersService {
             }
             String genre = json.getJSONObject("tags").getJSONArray("tag").getJSONObject(0).getString("name");
             album = new Album(albumName,artistName,genre,imageURL,tracksMap);
+            return CompletableFuture.completedFuture(album);
         } catch (JSONException e) {
             e.printStackTrace();
+            return null;
         }
-        return CompletableFuture.completedFuture(album);
     }
 
     @Override

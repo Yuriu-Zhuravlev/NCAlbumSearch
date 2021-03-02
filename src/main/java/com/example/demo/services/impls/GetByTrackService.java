@@ -19,11 +19,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-@Service("byArtist")
-public class GetByArtistService implements GetByOneParameterService {
+@Service("byTrack")
+public class GetByTrackService implements GetByOneParameterService {
+
     @Autowired
-    @Qualifier("byAlbumAndArtist")
-    GetByTwoParametersService getByAlbumAndArtist;
+    @Qualifier("byTrackAndArtist")
+    GetByTwoParametersService getByTrackAndArtist;
 
     @Autowired
     @Qualifier("URLReplacer")
@@ -33,7 +34,7 @@ public class GetByArtistService implements GetByOneParameterService {
     String urlString;
     @Value("${lastfm.param.method}")
     String methodParam;
-    @Value("${lastfm.param.method.get-top-albums}")
+    @Value("${lastfm.param.method.track-search}")
     String methodValue;
     @Value("${lastfm.param.api-key}")
     String apiKeyParam;
@@ -43,8 +44,8 @@ public class GetByArtistService implements GetByOneParameterService {
     String formatParam;
     @Value("${lastfm.param.format.value}")
     String formatValue;
-    @Value("${lastfm.param.artist}")
-    String artistParam;
+    @Value("${lastfm.param.track}")
+    String trackParam;
     @Value("${lastfm.param.limit}")
     String limitParam;
     @Value("${lastfm.param.limit.value}")
@@ -57,7 +58,7 @@ public class GetByArtistService implements GetByOneParameterService {
         String url = urlString + '?' +
                 methodParam + '=' + methodValue +
                 '&' + apiKeyParam + '=' + apiKeyValue +
-                '&' + artistParam + '=' + replacer.replaceSpec(param) +
+                '&' + trackParam + '=' + replacer.replaceSpec(param) +
                 '&' + limitParam + '=' + limitValue +
                 '&' + formatParam + '=' + formatValue;
         String responseString = restTemplate.getForObject(url, String.class);
@@ -65,12 +66,14 @@ public class GetByArtistService implements GetByOneParameterService {
         int total = 1;
         try {
             JSONObject json = new JSONObject(responseString);
-            json = json.getJSONObject("topalbums");
-            total = Integer.parseInt(json.getJSONObject("@attr").getString("total"));
-            JSONArray jsonAlbums = json.getJSONArray("album");
-            for (int i = 0; i < jsonAlbums.length(); i++){
-                String albumName = jsonAlbums.getJSONObject(i).getString("name");
-                completableFutureList.add(getByAlbumAndArtist.getAlbum(albumName,param));
+            json = json.getJSONObject("results");
+            total = Integer.parseInt(json.getString("opensearch:totalResults"));
+            JSONArray jsonResults = json.getJSONObject("trackmatches").getJSONArray("track");
+            for (int i = 0; i < jsonResults.length(); i++){
+                String trackName = jsonResults.getJSONObject(i).getString("name");
+                String artistName = jsonResults.getJSONObject(i).getString("artist");
+                CompletableFuture<Album> album = getByTrackAndArtist.getAlbum(trackName,artistName);
+                completableFutureList.add(album);
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -79,6 +82,8 @@ public class GetByArtistService implements GetByOneParameterService {
         for (CompletableFuture<Album> completableFuture: completableFutureList) {
             completableFuture.join();
             try {
+                Album album = completableFuture.get();
+                if (album!=null)
                 albums.add(completableFuture.get());
             } catch (InterruptedException e) {
                 e.printStackTrace();

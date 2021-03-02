@@ -1,5 +1,6 @@
 package com.example.demo.services.impls;
 
+import com.example.demo.beens.interfaces.URLReplacer;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
 import org.json.JSONException;
@@ -18,6 +19,10 @@ public class GetByTrackAndArtistService implements GetByTwoParametersService {
     @Autowired
     @Qualifier("byAlbumAndArtist")
     GetByTwoParametersService getByAlbumAndArtist;
+
+    @Autowired
+    @Qualifier("URLReplacer")
+    URLReplacer replacer;
 
     @Value("${lastfm.url}")
     String urlString;
@@ -44,22 +49,23 @@ public class GetByTrackAndArtistService implements GetByTwoParametersService {
         RestTemplate restTemplate = new RestTemplate();
         String url = urlString + '?' +
                 methodParam + '=' + methodValue +
-                '&' + apiKeyParam + '=' + apiKeyValue +
-                '&' + artistParam + '=' + artist +
-                '&' + trackParam + '=' + param1 +
-                '&' + formatParam + '=' + formatValue;
+                '&' + artistParam + '=' + replacer.replaceSpec(artist) +
+                '&' + trackParam + '=' + replacer.replaceSpec(param1) +
+                '&' + formatParam + '=' + formatValue +
+                '&' + apiKeyParam + '=' + apiKeyValue;
         String responseString = restTemplate.getForObject(url, String.class);
-        String albumName = null;
+        String albumName;
+        String artistName;
         try {
             JSONObject json = new JSONObject(responseString);
             json = json.getJSONObject("track");
             json = json.getJSONObject("album");
             albumName = json.getString("title");
+            artistName = json.getString("artist");
+            return getByAlbumAndArtist.getAlbum(albumName,artistName);
         } catch (JSONException e) {
-            e.printStackTrace();
+            return null;
         }
-        CompletableFuture<Album> album = getByAlbumAndArtist.getAlbum(albumName,artist);
-        return album;
     }
 
     @Override
