@@ -1,5 +1,6 @@
 package com.example.demo.controllers;
 
+import com.example.demo.beens.factories.AlbumConverterFactory;
 import com.example.demo.beens.interfaces.AlbumConverter;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByOneParameterService;
@@ -24,8 +25,8 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/api")
 public class AlbumFinderController {
     @Autowired
-    @Qualifier("albumConverter")
-    AlbumConverter albumConverter;
+    @Qualifier("albumConverterFactory")
+    AlbumConverterFactory albumConverterFactory;
     @Autowired
     @Qualifier("byTrackAndArtist")
     GetByTwoParametersService getByTrackAndArtist;
@@ -56,13 +57,8 @@ public class AlbumFinderController {
         }
         List<Album> albums = new LinkedList<>();
         albums.add(album);
-        String response;
-        if (format.equals("xml")) {
-            response = albumConverter.toXML(albums);
-        } else {
-            response = albumConverter.toJSON(albums);
-        }
-        return ResponseEntity.ok(response);
+        AlbumConverter albumConverter = albumConverterFactory.build(format);
+        return ResponseEntity.ok(albumConverter.convert(albums));
     }
 
     @RequestMapping (path = "/byArtist")
@@ -81,13 +77,8 @@ public class AlbumFinderController {
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-        String response;
-        if (format.equals("xml")) {
-            response = albumConverter.toXML(albums);
-        } else {
-            response = albumConverter.toJSON(albums);
-        }
-        return ResponseEntity.ok(response);
+        AlbumConverter albumConverter = albumConverterFactory.build(format);
+        return ResponseEntity.ok(albumConverter.convert(albums));
     }
 
     @RequestMapping (path = "/byTrack")
@@ -106,12 +97,7 @@ public class AlbumFinderController {
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-        String response;
-        if (format.equals("xml")) {
-            response = albumConverter.toXML(albums);
-        } else {
-            response = albumConverter.toJSON(albums);
-        }
-        return ResponseEntity.ok(response);
+        AlbumConverter albumConverter = albumConverterFactory.build(format);
+        return ResponseEntity.ok(albumConverter.convert(albums));
     }
 }
