@@ -4,6 +4,7 @@ import com.example.demo.beens.interfaces.URLReplacer;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByOneParameterService;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
+import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 
 @Service("byTrack")
 public class GetByTrackService implements GetByOneParameterService {
+    private static final Logger log = Logger.getLogger(GetByTrackService.class);
 
     @Autowired
     @Qualifier("byTrackAndArtist")
@@ -67,16 +69,20 @@ public class GetByTrackService implements GetByOneParameterService {
         try {
             JSONObject json = new JSONObject(responseString);
             json = json.getJSONObject("results");
+            if (Integer.parseInt(json.getString("opensearch:totalResults")) == 0)
+                return null;
             total = Integer.parseInt(json.getString("opensearch:totalResults"));
             JSONArray jsonResults = json.getJSONObject("trackmatches").getJSONArray("track");
             for (int i = 0; i < jsonResults.length(); i++){
                 String trackName = jsonResults.getJSONObject(i).getString("name");
                 String artistName = jsonResults.getJSONObject(i).getString("artist");
                 CompletableFuture<Album> album = getByTrackAndArtist.getAlbum(trackName,artistName);
-                completableFutureList.add(album);
+                if (album != null)
+                    completableFutureList.add(album);
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            log.error("Failed to extract fields from json",e);
+            return null;
         }
         List<Album> albums = new LinkedList<>();
         for (CompletableFuture<Album> completableFuture: completableFutureList) {
@@ -84,11 +90,9 @@ public class GetByTrackService implements GetByOneParameterService {
             try {
                 Album album = completableFuture.get();
                 if (album!=null)
-                albums.add(completableFuture.get());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
+                albums.add(album);
+            } catch (InterruptedException | ExecutionException e) {
+                log.error("Failed to get album from CompletableFuture",e);
             }
         }
         albums.get(0).setSimilarResults(total);

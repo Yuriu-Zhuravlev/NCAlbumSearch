@@ -2,6 +2,7 @@ package com.example.demo.beens.impls;
 
 import com.example.demo.beens.interfaces.AlbumConverter;
 import com.example.demo.classes.Album;
+import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -9,7 +10,8 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.Map;
 
-public class ALbumConverterJson implements AlbumConverter {
+public class AlbumConverterJson implements AlbumConverter {
+    private static final Logger log = Logger.getLogger(AlbumConverterJson.class);
     @Override
     public String convert(List<Album> albums) {
         JSONObject jsonObject = new JSONObject();
@@ -21,7 +23,7 @@ public class ALbumConverterJson implements AlbumConverter {
             jsonObject.put("albums", albumsJson);
             jsonObject.put("total albums",albums.get(0).getSimilarResults());
         } catch (JSONException e) {
-            e.printStackTrace();
+            log.error("Failed to form json from list of albums", e);
         }
         return jsonObject.toString();
     }
@@ -43,7 +45,7 @@ public class ALbumConverterJson implements AlbumConverter {
             }
             jsonObject.put("tracks",tracks);
         } catch (JSONException e) {
-            e.printStackTrace();
+            log.error("Failed to form json from album", e);
         }
         return jsonObject;
     }

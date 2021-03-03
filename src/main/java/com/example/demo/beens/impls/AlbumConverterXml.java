@@ -2,6 +2,7 @@ package com.example.demo.beens.impls;
 
 import com.example.demo.beens.interfaces.AlbumConverter;
 import com.example.demo.classes.Album;
+import org.apache.log4j.Logger;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 public class AlbumConverterXml implements AlbumConverter {
+    private static final Logger log = Logger.getLogger(AlbumConverterXml.class);
 
     private void appendAlbumXml(Element baseRoot, Document document, Album album){
         Element root = document.createElement("album");
@@ -80,10 +82,10 @@ public class AlbumConverterXml implements AlbumConverter {
             StreamResult streamResult = new StreamResult(writer);
             transformer.transform(domSource, streamResult);
             res = writer.getBuffer().toString();
-        } catch (ParserConfigurationException | TransformerConfigurationException e) {
-            e.printStackTrace();
+        } catch (ParserConfigurationException e) {
+            log.error("Failed to call DocumentBuilder", e);
         } catch (TransformerException e) {
-            e.printStackTrace();
+            log.error("Failed to transform xml into StringWriter", e);
         }
         return res;
 

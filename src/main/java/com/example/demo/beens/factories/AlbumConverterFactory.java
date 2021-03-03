@@ -1,6 +1,6 @@
 package com.example.demo.beens.factories;
 
-import com.example.demo.beens.impls.ALbumConverterJson;
+import com.example.demo.beens.impls.AlbumConverterJson;
 import com.example.demo.beens.impls.AlbumConverterXml;
 import com.example.demo.beens.interfaces.AlbumConverter;
 import org.springframework.stereotype.Component;
@@ -12,7 +12,7 @@ public class AlbumConverterFactory {
             return new AlbumConverterXml();
         } else {
             if (format.equals("json")){
-                return new ALbumConverterJson();
+                return new AlbumConverterJson();
             } else {
                 throw new IllegalArgumentException("Incorrect format");
             }

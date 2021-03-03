@@ -4,6 +4,7 @@ import com.example.demo.beens.interfaces.URLReplacer;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByOneParameterService;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
+import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,6 +22,8 @@ import java.util.concurrent.ExecutionException;
 
 @Service("byArtist")
 public class GetByArtistService implements GetByOneParameterService {
+    private static final Logger log = Logger.getLogger(GetByArtistService.class);
+
     @Autowired
     @Qualifier("byAlbumAndArtist")
     GetByTwoParametersService getByAlbumAndArtist;
@@ -70,20 +73,21 @@ public class GetByArtistService implements GetByOneParameterService {
             JSONArray jsonAlbums = json.getJSONArray("album");
             for (int i = 0; i < jsonAlbums.length(); i++){
                 String albumName = jsonAlbums.getJSONObject(i).getString("name");
-                completableFutureList.add(getByAlbumAndArtist.getAlbum(albumName,param));
+                CompletableFuture<Album> albumCompletableFuture = getByAlbumAndArtist.getAlbum(albumName,param);
+                if(albumCompletableFuture != null)
+                    completableFutureList.add(albumCompletableFuture);
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            log.error("Failed to extract fields from json",e);
+            return null;
         }
         List<Album> albums = new LinkedList<>();
         for (CompletableFuture<Album> completableFuture: completableFutureList) {
             completableFuture.join();
             try {
                 albums.add(completableFuture.get());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
+            } catch (InterruptedException | ExecutionException e) {
+                log.error("Failed to get album from CompletableFuture",e);
             }
         }
         albums.get(0).setSimilarResults(total);

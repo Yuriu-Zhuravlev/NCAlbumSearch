@@ -3,6 +3,7 @@ package com.example.demo.services.impls;
 import com.example.demo.beens.interfaces.URLReplacer;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
+import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -19,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 
 @Service("byAlbumAndArtist")
 public class GetByAlbumAndArtistService implements GetByTwoParametersService {
+    private static final Logger log = Logger.getLogger(GetByAlbumAndArtistService.class);
+
     @Autowired
     @Qualifier("URLReplacer")
     URLReplacer replacer;
@@ -74,7 +77,7 @@ public class GetByAlbumAndArtistService implements GetByTwoParametersService {
             album = new Album(albumName,artistName,genre,imageURL,tracksMap);
             return CompletableFuture.completedFuture(album);
         } catch (JSONException e) {
-            e.printStackTrace();
+            log.error("Failed to extract fields from json",e);
             return null;
         }
     }
