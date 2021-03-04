@@ -64,8 +64,11 @@ public class AlbumConverterXml implements AlbumConverter {
             DocumentBuilder documentBuilder = documentFactory.newDocumentBuilder();
             Document document = documentBuilder.newDocument();
 
-            Element baseRoot = document.createElement("albums");
+            Element baseRoot = document.createElement("albumFinder");
             document.appendChild(baseRoot);
+            Attr attr = document.createAttribute("status");
+            attr.setValue("ok");
+            baseRoot.setAttributeNode(attr);
 
             for (Album album:albums) {
                 appendAlbumXml(baseRoot,document,album);

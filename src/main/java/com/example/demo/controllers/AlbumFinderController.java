@@ -1,6 +1,8 @@
 package com.example.demo.controllers;
 
 import com.example.demo.beens.factories.AlbumConverterFactory;
+import com.example.demo.beens.factories.ErrorResponseFactory;
+import com.example.demo.beens.factories.ErrorResponseTypes;
 import com.example.demo.beens.interfaces.AlbumConverter;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByOneParameterService;
@@ -22,7 +24,9 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/api")
 public class AlbumFinderController {
     private static final Logger log = Logger.getLogger(AlbumFinderController.class);
-
+    @Autowired
+    @Qualifier("errorResponse")
+    ErrorResponseFactory errorResponseFactory;
     @Autowired
     @Qualifier("albumConverterFactory")
     AlbumConverterFactory albumConverterFactory;
@@ -49,7 +53,7 @@ public class AlbumFinderController {
             albumConverter = albumConverterFactory.build(format);
         } catch (IllegalArgumentException e){
             log.error("Wrong format",e);
-            return ResponseEntity.ok("wrong format param");
+            return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.INVALID_FORMAT).createResponse());
         }
         CompletableFuture<Album> albumCompletableFuture = getByTrackAndArtist.getAlbum(track,artist);
         albumCompletableFuture.join();
@@ -58,7 +62,10 @@ public class AlbumFinderController {
             album = albumCompletableFuture.get();
             if (album == null){
                 log.info("Didn't find anything suitable");
-                return ResponseEntity.ok("failed to find something with such parameters");
+                if (format.equals("xml"))
+                    return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_XML).createResponse());
+                else
+                    return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_JSON).createResponse());
             }
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to get album from CompletableFuture",e);
@@ -95,7 +102,7 @@ public class AlbumFinderController {
             albumConverter = albumConverterFactory.build(format);
         } catch (IllegalArgumentException e){
             log.error("Wrong format",e);
-            return ResponseEntity.ok("wrong format param");
+            return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.INVALID_FORMAT).createResponse());
         }
         CompletableFuture<List<Album>> albumCompletableFuture = byOneParam.getAlbums(param);
         albumCompletableFuture.join();
@@ -104,7 +111,10 @@ public class AlbumFinderController {
             albums = albumCompletableFuture.get();
             if (albums == null || albums.size() == 0){
                 log.info("Didn't find anything suitable");
-                return ResponseEntity.ok("failed to find something with such parameters");
+                if (format.equals("xml"))
+                    return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_XML).createResponse());
+                else
+                    return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_JSON).createResponse());
             }
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to get albums from CompletableFuture",e);
