@@ -20,9 +20,11 @@ import java.util.Map;
 public class SaveToDockImpl implements SaveToDock {
     private static final Logger log = Logger.getLogger(SaveToDockImpl.class);
     @Value("${doc.template}")
-    String templateFileName;
+    private String templateFileName;
     @Value("${doc.save.dir}")
-    String savePath;
+    private String savePath;
+    @Value("${doc.extension}")
+    private String fileExtension;
 
     @Override
     public void save(Album album) {
@@ -93,7 +95,9 @@ public class SaveToDockImpl implements SaveToDock {
     }
 
     private void saveFile(String fileName, XWPFDocument doc){
-        try(OutputStream out = new FileOutputStream(fileName+".docx")) {
+        File file = new File(savePath+fileName+fileExtension);
+        file.getParentFile().mkdirs();
+        try(OutputStream out = new FileOutputStream(file)) {
             doc.write(out);
         } catch (FileNotFoundException e) {
             log.error("Failed to find file", e);
