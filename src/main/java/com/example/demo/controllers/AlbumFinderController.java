@@ -4,6 +4,7 @@ import com.example.demo.beens.factories.AlbumConverterFactory;
 import com.example.demo.beens.factories.ErrorResponseFactory;
 import com.example.demo.beens.factories.ErrorResponseTypes;
 import com.example.demo.beens.interfaces.AlbumConverter;
+import com.example.demo.beens.interfaces.SaveToDock;
 import com.example.demo.classes.Album;
 import com.example.demo.services.interfaces.GetByOneParameterService;
 import com.example.demo.services.interfaces.GetByTwoParametersService;
@@ -40,6 +41,9 @@ public class AlbumFinderController {
     @Autowired
     @Qualifier("byTrack")
     GetByOneParameterService getByTrack;
+    @Autowired
+    @Qualifier("albumToDock")
+    SaveToDock saveToDock;
 
     @CacheEvict("getByTrackAndArtist")
     @RequestMapping (path = "/byArtistAndTrack")
@@ -72,6 +76,7 @@ public class AlbumFinderController {
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to get album from CompletableFuture",e);
         }
+        saveToDock.save(album);
         List<Album> albums = new LinkedList<>();
         albums.add(album);
 
