@@ -10,6 +10,7 @@ import com.example.demo.services.interfaces.GetByTwoParametersService;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,6 +41,7 @@ public class AlbumFinderController {
     @Qualifier("byTrack")
     GetByOneParameterService getByTrack;
 
+    @CacheEvict("getByTrackAndArtist")
     @RequestMapping (path = "/byArtistAndTrack")
     public ResponseEntity<?> getByArtistAndTrack(
             @RequestParam(value = "artist") String artist,
@@ -75,7 +77,7 @@ public class AlbumFinderController {
 
         return ResponseEntity.ok(albumConverter.convert(albums));
     }
-
+    @CacheEvict("getByArtist")
     @RequestMapping (path = "/byArtist")
     public ResponseEntity<?> getByArtist(
             @RequestParam(value = "artist") String artist,
@@ -86,6 +88,7 @@ public class AlbumFinderController {
         return getResponseEntity(artist, format, getByArtist);
     }
 
+    @CacheEvict("getByTrack")
     @RequestMapping (path = "/byTrack")
     public ResponseEntity<?> getByTrack(
             @RequestParam(value = "track") String track,
