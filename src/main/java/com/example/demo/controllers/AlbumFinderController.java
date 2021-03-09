@@ -102,7 +102,7 @@ public class AlbumFinderController {
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .body(resource);
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                log.error("Failed to find file with albums",e);
             }
             return CompletableFuture.completedFuture(responseEntity);
         } else {
@@ -171,7 +171,7 @@ public class AlbumFinderController {
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .body(resource);
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                log.error("Failed to find file with albums",e);
             }
             return responseEntity;
         } else {
