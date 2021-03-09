@@ -12,11 +12,19 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +34,8 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping("/api")
 public class AlbumFinderController {
     private static final Logger log = Logger.getLogger(AlbumFinderController.class);
+    @Autowired
+    ResourceLoader resourceLoader;
     @Autowired
     @Qualifier("errorResponse")
     ErrorResponseFactory errorResponseFactory;
@@ -45,12 +55,14 @@ public class AlbumFinderController {
     @Qualifier("albumToDock")
     SaveToDock saveToDock;
 
+    @Async("asyncExecutor")
     @CacheEvict("getByTrackAndArtist")
     @RequestMapping (path = "/byArtistAndTrack")
-    public ResponseEntity<?> getByArtistAndTrack(
+    public CompletableFuture<ResponseEntity<?>> getByArtistAndTrack(
             @RequestParam(value = "artist") String artist,
             @RequestParam(value = "track") String track,
-            @RequestParam(value = "format", defaultValue="json") String format
+            @RequestParam(value = "format", defaultValue="json") String format,
+            @RequestParam(value = "download", defaultValue="false") boolean download
     )
     {
         log.info("/byArtistAndTrack called with params: artist = " + artist +", track = " + track + ", format = " + format);
@@ -59,7 +71,7 @@ public class AlbumFinderController {
             albumConverter = albumConverterFactory.build(format);
         } catch (IllegalArgumentException e){
             log.error("Wrong format",e);
-            return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.INVALID_FORMAT).createResponse());
+            return CompletableFuture.completedFuture(ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.INVALID_FORMAT).createResponse()));
         }
         CompletableFuture<Album> albumCompletableFuture = getByTrackAndArtist.getAlbum(track,artist);
         albumCompletableFuture.join();
@@ -69,42 +81,62 @@ public class AlbumFinderController {
             if (album == null){
                 log.info("Didn't find anything suitable");
                 if (format.equals("xml"))
-                    return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_XML).createResponse());
+                    return CompletableFuture.completedFuture(ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_XML).createResponse()));
                 else
-                    return ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_JSON).createResponse());
+                    return CompletableFuture.completedFuture(ResponseEntity.ok(errorResponseFactory.build(ErrorResponseTypes.NOTHING_FOUND_JSON).createResponse()));
             }
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to get album from CompletableFuture",e);
         }
-        saveToDock.save(album);
         List<Album> albums = new LinkedList<>();
         albums.add(album);
-
-        return ResponseEntity.ok(albumConverter.convert(albums));
+        if(download) {
+            ResponseEntity<?> responseEntity = null;
+            String path = saveToDock.save(albums, artist + "_" + track);
+            File file = new File(path);
+            try {
+                InputStreamResource resource = new InputStreamResource(new FileInputStream(file));
+                responseEntity = ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                        .contentLength(file.length())
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        .body(resource);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            return CompletableFuture.completedFuture(responseEntity);
+        } else {
+            return CompletableFuture.completedFuture(ResponseEntity.ok(albumConverter.convert(albums)));
+        }
     }
+
+    @Async("asyncExecutor")
     @CacheEvict("getByArtist")
     @RequestMapping (path = "/byArtist")
-    public ResponseEntity<?> getByArtist(
+    public CompletableFuture<ResponseEntity<?>> getByArtist(
             @RequestParam(value = "artist") String artist,
-            @RequestParam(value = "format", defaultValue="json") String format
+            @RequestParam(value = "format", defaultValue="json") String format,
+            @RequestParam(value = "download", defaultValue="false") boolean download
     )
     {
         log.info("/byArtist called with params: artist = " + artist + ", format = " + format);
-        return getResponseEntity(artist, format, getByArtist);
+        return CompletableFuture.completedFuture(getResponseEntity(artist, format, getByArtist, download));
     }
 
+    @Async("asyncExecutor")
     @CacheEvict("getByTrack")
     @RequestMapping (path = "/byTrack")
-    public ResponseEntity<?> getByTrack(
+    public CompletableFuture<ResponseEntity<?>> getByTrack(
             @RequestParam(value = "track") String track,
-            @RequestParam(value = "format", defaultValue="json") String format
+            @RequestParam(value = "format", defaultValue="json") String format,
+            @RequestParam(value = "download", defaultValue="false") boolean download
     )
     {
         log.info("/byTrack called with params: track = " + track + ", format = " + format);
-        return getResponseEntity(track, format, getByTrack);
+        return CompletableFuture.completedFuture(getResponseEntity(track, format, getByTrack, download));
     }
 
-    private ResponseEntity<?> getResponseEntity(String param, String format, GetByOneParameterService byOneParam) {
+    private ResponseEntity<?> getResponseEntity(String param, String format, GetByOneParameterService byOneParam, boolean download) {
         AlbumConverter albumConverter;
         try {
             albumConverter = albumConverterFactory.build(format);
@@ -127,6 +159,23 @@ public class AlbumFinderController {
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to get albums from CompletableFuture",e);
         }
-        return ResponseEntity.ok(albumConverter.convert(albums));
+        if (download) {
+            String path = saveToDock.save(albums, param);
+            File file = new File(path);
+            ResponseEntity<?> responseEntity = null;
+            try {
+                InputStreamResource resource = new InputStreamResource(new FileInputStream(file));
+                responseEntity = ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                        .contentLength(file.length())
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        .body(resource);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            return responseEntity;
+        } else {
+            return ResponseEntity.ok(albumConverter.convert(albums));
+        }
     }
 }
